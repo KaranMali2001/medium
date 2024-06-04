@@ -46,6 +46,6 @@ func init() {
 
 }
 func Start() {
-	Db.AutoMigrate(&User{}, &Post{})
+	Db.AutoMigrate(&User{}, &Blog{})
 	fmt.Println("database connected successfully")
 }
