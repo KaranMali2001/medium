@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// write migration files
 var Db *gorm.DB
 
 func init() {
@@ -38,14 +39,13 @@ func init() {
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	err = sqlDB.Ping()
+	
 	if err != nil {
 		log.Println("failed to ping th db", err)
 		return
 	}
-	Start()
-
-}
-func Start() {
 	Db.AutoMigrate(&User{}, &Blog{})
-	fmt.Println("database connected successfully")
+
+	fmt.Println("database connected")
 }
+

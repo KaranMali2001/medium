@@ -10,10 +10,11 @@ import (
 	"github.com/labstack/echo"
 )
 
-var JWTKey = "my_key"
+var JWTKey = []byte("my_key")
 
-func CreateToken(email string) (string, error) {
+func CreateToken(email string, id uint) (string, error) {
 	claims := database.JWTClaims{
+
 		Email:            email,
 		RegisteredClaims: jwt.RegisteredClaims{},
 	}

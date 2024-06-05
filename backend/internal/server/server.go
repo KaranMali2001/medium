@@ -27,11 +27,13 @@ func CreateNewBlog(ctx echo.Context) error {
 		log.Println(err)
 		return ctx.JSON(http.StatusInternalServerError, "error while binding data")
 	}
-	err := middleware.ValidateReq(blog)
-	if err != nil {
-		log.Println(err)
-		return ctx.JSON(http.StatusInternalServerError, "error while validating ")
-	}
+	blog.UserEmail = claims.Email
+	/*
+		err := middleware.ValidateReq(blog)
+		if err != nil {
+			log.Println(err)
+			return ctx.JSON(http.StatusInternalServerError, "error while validating ")
+		} */
 	result := db.Create(blog)
 	if result.Error != nil {
 		log.Println(result.Error)
@@ -44,31 +46,49 @@ func CreateNewBlog(ctx echo.Context) error {
 	})
 }
 func UpdateBlog(ctx echo.Context) error {
+	id := ctx.Param("id")
+	db := database.Db
+	claims := ctx.Get("claims").(*database.JWTClaims)
+
+	newBlog := make(map[string]interface{})
+	if err := ctx.Bind(&newBlog); err != nil {
+		log.Println(err)
+		return ctx.JSON(http.StatusInternalServerError, "error while binding")
+	}
+	err := db.Model(&database.Blog{}).Where("id = ? AND user_email= ?", id, claims.Email).Updates(newBlog).Error
+	if err != nil {
+		log.Println(err)
+		return ctx.JSON(http.StatusInternalServerError, "error while finding and updating")
+	}
 	return ctx.JSON(http.StatusOK, "blog updated successfully")
 }
 func GetBlog(ctx echo.Context) error {
 	id := ctx.Param("id")
 	var blog database.Blog
 	db := database.Db
-	result := db.Where("id = ?", id).Model(&blog)
+	result := db.Where("id = ?", id).First(&blog)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return ctx.JSON(http.StatusInternalServerError, "error while finding ")
 	}
+	if result.RowsAffected > 0 {
+		return ctx.JSON(http.StatusOK, blog)
+	} else {
+		return ctx.JSON(http.StatusNotFound, "no blog has been added")
+	}
 
-	return ctx.JSON(http.StatusOK, blog)
 }
 func SignIn(ctx echo.Context) error {
 	username := ctx.FormValue("username")
 	password := ctx.FormValue("password")
 	var user database.User
 	db := database.Db
-	result := db.Where("username = ?,password= ?", username, password).First(&user)
+	result := db.Where("user_name = ? AND password= ?", username, password).First(&user)
 	if result.Error != nil {
 		log.Println(result.Error)
 		return ctx.JSON(http.StatusInternalServerError, "error while finding")
 	}
-	token, err := middleware.CreateToken(user.Email)
+	token, err := middleware.CreateToken(user.Email, user.ID)
 	if err != nil {
 		log.Println(err)
 		return ctx.JSON(http.StatusInternalServerError, err)
@@ -96,7 +116,7 @@ func SignUp(ctx echo.Context) error {
 		log.Println(result.Error)
 		return ctx.JSON(http.StatusInternalServerError, "error while creating ")
 	}
-	token, err := middleware.CreateToken(user.Email)
+	token, err := middleware.CreateToken(user.Email, user.ID)
 	if err != nil {
 		log.Println(err)
 	}
